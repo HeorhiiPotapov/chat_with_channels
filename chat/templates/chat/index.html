@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{% endblock title %}
+{% block content %}
+
+{% comment %} justify-content-center {% endcomment %}
+<div class="container-fluid">
+    <div class="row mt-4 justify-content-center">
+        <div class="col-lg-6">
+            <form action="{% url 'chat:search' %}" method="get">
+                <div class="input-group mt-3 mb-4 px-0 mx-0">
+                    <input class="form-control" id="room-name-input" type="text" name="q" aria-describedby="room-name-submit" placeholder="Search for group or user...">
+                    <button class="btn btn-outline-secondary" type="button" id="room-name-submit">Search</button>
+                </div>
+            </form>
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="py-2 alert alert-{{ message.tags }} fade show" role="alert">
+                        {{ message }}
+                        {% comment %} <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button> {% endcomment %}
+                    </div>
+                {% endfor %}
+            </div>
+            {% if room_list.count != 0 %}
+                {% for room in room_list %}
+                    <div class="border row mt-3 mx-0 align-items-center" style="border-radius: 8px;">
+                        <div class="col-lg-2">
+                            <img class="rounded-circle my-2 img-fluid" src="{{ room.logo.url }}" alt="">
+                        </div>
+                        <div class="col-lg-10" style="padding-left: 0;">
+                            <div class="mt-2">
+                                <a style="text-decoration: none;" href="{{ room.get_absolute_url }}">{{ room.name }}</a>
+                                {% if room.room_messages.count > 0 %}
+                                    <div style="border-bottom: 1px solid grey;"></div>
+                                    <p class="mt-2 small" ><span style="color: #222">{{ room.room_messages.last.sender.name }}</span>, {{ room.room_messages.last.text|truncatewords:10 }}...</p>
+                                {% else %}
+                                    <p class="mt-2"><small style="font-style: italic;">No messages here for now...</small></p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            <div class="text-center mt-4">
+                <a class="btn btn-secondary" href="{% url 'chat:create' %}">New chat</a>
+            </div>
+            {% else %}
+                <div style="margin-top: 100px;" class="text-center">
+                    <h4 class="text-muted" style="font-style: italic;">No chat rooms available at this moment</h4>
+                    <a class="btn btn-secondary mt-3" href="{% url 'chat:create' %}">New chat</a>
+                </div>
+                <div class="text-center mt-5">
+                    <img style="max-width: 25%" class="img-fluid" src="{% static 'img/palm1.png' %}" alt="">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div> 
+
+<script>
+    document.querySelector('#room-name-input').onkeyup = function(e) {
+        if (e.keyCode === 13) {document.querySelector('#room-name-submit').click()}
+    };
+</script>
+
+{% endblock content %}
+

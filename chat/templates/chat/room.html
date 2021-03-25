@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Chat Room{% endblock title %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mt-2">
+        <div class="col-lg-3" style="overflow-y: auto; height: 600px;">
+            <div class="row mx-0">
+                <div class="col-lg-12" style="font-size: 35px;">
+                    <a href="{% url 'chat:index' %}"><i class="fas fa-arrow-circle-left mb-3" style="color: grey"></i></a>
+                </div>
+                <div class="border-bottom"></div>
+            </div>
+            <div class="border row mt-3 mx-0 align-items-center" style="border-radius: 8px;"> 
+                <div class="col-lg-3">
+                    <img class="rounded-circle my-2 border img-fluid" src="{{ request.user.profile.image.url }}" alt="">
+                </div>
+                <div class="col-lg-9 px-0">
+                    <div class=" mt-2">
+                        <p class="mt-0"><a style="text-decoration: none" href="{{ request.user.profile.get_absolute_url }}">{{ request.user.name }}</a><br>{{ request.user.email }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3" style="border-bottom: 1px solid gray;"></div>
+            {% for room in room_list %}
+                <div class="border row mt-3 mx-0 align-items-center" style="border-radius: 8px; 
+                    {% if room.name == room_name|slice:"1:-1" %}
+                        background-color: #00FFFF
+                    {% endif %}">
+                    <div class="col-lg-3">
+                        <img class="rounded-circle img-fluid border" src="{{ room.logo.url }}" alt="">
+                    </div>
+                    <div class="col-lg-9" style="padding-left: 0;">
+                        <div class="mt-2">
+                            <a style="text-decoration: none;" href="{{ room.get_absolute_url }}">{{ room.name }}</a>
+                            <div class="border-bottom"></div>
+                            {% if room.room_messages.count != 0 %}
+                                <p class="mt-2 small" >
+                                    <span style="color: #222">
+                                        {{ room.room_messages.last.sender.name }},</span>
+                                        {{ room.room_messages.last.text|truncatewords:5 }}...
+                                </p>
+                            {% else %}
+                                <p class="mt-2"><small style="font-style: italic;">No messages here for now...</small></p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="col-lg-6">
+            <div id="chat-log" style="overflow-y: auto; height: 570px;"></div>
+            <div class="input-group my-3">
+                <input class="form-control" id="chat-message-input" type="text" aria-describedby="chat-message-submit">
+                <button class="btn btn-outline-secondary" type="button" onclick="getFile()" id="file-input">File</button>
+                <button class="btn btn-outline-secondary" type="button" id="chat-message-submit">Send</button>
+            </div>
+            <input id="file-form" type="file" hidden>
+        </div>
+        <div class="col-lg-3" style="overflow-y: auto; height: 600px;">
+            <div class="row justify-content-center">
+                <div class="col-lg-12">
+                    <div class="text-center">
+                        <img style="max-height: 200px;" class="rounded-circle img-fluid border" src="{{ room_obj.logo.url }}" alt="">
+                    </div>
+                    <div class="mt-4">
+                        <ul class="list-unstyled my-0 py-0" style="font-size: 14px;">
+                            <li><p>Owner: {{ room_obj.owner.name|capfirst }}</p></li>
+                            <li><p>Created at: {{ room_obj.created }}</p></li>
+                            <li><p>Members: {{ room_obj.members.count }}</p></li>
+                            <li><p>Messages: {{ room_obj.room_messages.count }}</p></li>
+                            {% if room_obj.owner == request.user %}
+                                <a style="width: 100%" class="btn btn-secondary mb-3" href="{% url 'chat:update' room_obj.id room_obj.name %}">Update</a>
+                                <form action="{% url 'chat:delete' room_obj.id room_obj.name %}" method="POST"
+                                    onsubmit="return confirm('Do you really want to delete this chat?');">
+                                    {% csrf_token %}
+                                    <button style="width: 100%" class="btn btn-outline-secondary" type="submit">Delete</button>
+                                </form>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/reconnecting-websocket.js' %}"></script>
+{% comment %} <script src="{% static 'js/imageUpload.js' %}"></script> {% endcomment %}
+<script src="{% static 'js/chunk.js' %}"></script>
+<script>
+
+    const roomName = {{ room_name }};
+    const user = {{ user }};
+    const chatLog = document.querySelector('#chat-log');
+    const messageInputDom = document.querySelector('#chat-message-input');
+    const messageSubmit = document.querySelector('#chat-message-submit');
+    const chatSocket = new ReconnectingWebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+    );
+
+// ================== websocket staff =======================
+
+    chatSocket.onopen = function(e) {
+        fetchMessages();
+    };
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const option = data['option']
+
+        if (option === 'new_message') {
+            createMessage(data['message']);
+        } else if (option === 'fetch' && chatLog.querySelectorAll('div').length < 1) {
+            for (let i=0; i<data['messages'].length; i++) {
+                createMessage(data['messages'][i]);
+            }
+        } else if (option === 'image') {
+            createMessage(data['value'])  
+        // ======== chunk proccessing =============
+        } else if (option === 'dispatch') {
+            dispatch(data)
+        }
+        chatLog.scrollTop = chatLog.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+// ==================================================
+//=================================================== img processing
+
+let dispatch = function (data) {
+    console.log(data.action)
+    switch (data.action) {
+        case 'ready':
+            loadFile(0);
+            console.log(data.action)
+            break;
+        case 'progress':
+            loadFile(data.file_size);
+            break;
+        case 'complete':
+            break;
+    }
+}
+
+// ============= load previous messages ===================
+
+    function fetchMessages() {
+        chatSocket.send(JSON.stringify({'option': 'fetch'}));
+    };
+
+// ============ send text message =====================
+
+    messageInputDom.focus();
+    messageInputDom.onkeyup = function(e) {
+        if (e.keyCode === 13) {
+            messageSubmit.click();
+        }
+    };
+
+    messageSubmit.onclick = function(e) {
+        const message = messageInputDom.value;
+        if (message.length > 0) {
+            chatSocket.send(JSON.stringify({
+                'option': 'new_message',
+                'message': message,
+                'user': user
+            }));
+            messageInputDom.value = '';
+        }
+    };
+
+// ================ render new message ==================
+
+    function createMessage(data) {
+        let msg = document.createElement('div');
+        let msgPTag = document.createElement('p');
+        let msgSpan = document.createElement('span');
+        msg.style = 'margin-top: 20px';
+        msgPTag.textContent = data.text;
+        if (data.sender === user) {
+            msg.className = 'text-right';
+        } else {
+            msg.className = 'text-left';   
+        }
+        msgSpan.textContent = '[' + data.sender + ' at ' + data.timestamp + ']';
+        msg.appendChild(msgSpan)
+        msg.appendChild(msgPTag)
+        if (data.image != undefined){
+            let msgImg = document.createElement('img');
+            msgImg.className = 'image';
+            msgImg.src = 'data:image/jpeg;base64,' + data.image.slice(2,-1);
+            msg.appendChild(msgImg);
+        }
+        chatLog.appendChild(msg);
+    };
+
+</script>
+{% endblock content %}

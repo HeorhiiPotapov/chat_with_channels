@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mt-4 justify-content-center">
+        <div class="col-lg-6">
+            <form action="{% url 'chat:search' %}" method="get">
+                <div class="input-group mt-3 mb-5 px-0 mx-0">
+                    <input class="form-control" id="room-name-input" type="text" name="q" aria-describedby="room-name-submit">
+                    <button class="btn btn-outline-secondary" type="button" id="room-name-submit">Send</button>
+                </div>
+            </form>
+            {% if room_list.count != 0 or user_list.count != 0 %}
+                {% if room_list.count != 0 %}
+                    <h4>Public groups:</h4>
+                    {% for room in room_list %}
+                        <div class="border row mt-3 mx-0 align-items-center" style="border-radius: 8px;">
+                            <div class="col-lg-2">
+                                <img class="rounded-circle border my-2 img-fluid" src="{{ room.logo.url }}" alt="">
+                            </div>
+                            <div class="col-lg-10" style="padding-left: 0;">
+                                <div class="mt-2">
+                                    <a style="text-decoration: none;" href="{{ room.get_absolute_url }}">{{ room.name }}</a>
+                                    <div style="border-bottom: 1px solid grey"></div>
+                                    {% if room.room_messages.count != 0 %}
+                                        <p class="mt-2 small" >
+                                            <span style="color: #222">
+                                                {{ room.room_messages.last.sender.name }},</span>
+                                                {{ room.room_messages.last.text|truncatewords:5 }}...
+                                        </p>
+                                    {% else %}
+                                        <p class="mt-2"><small style="font-style: italic;">No messages here for now...</small></p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                {% if user_list.count != 0 %}
+                    <h4 class="mt-5">Available users:</h4>
+                    {% for user in user_list %}
+                        <div class="border row mx-0 mt-3 align-items-center" style="border-radius: 8px;"> 
+                            <div class="col-lg-2">
+                                <img class="rounded-circle my-2 border img-fluid" src="{{ user.profile.image.url }}" alt="">
+                            </div>
+                            <div class="col-lg-10 px-0">
+                                <div class="mt-0 pt-0">
+                                    <p style="line-height: 16px;"><strong>{{ user.name }}</strong> <br>{{ user.email }}</p>
+                                    <form action="{% url 'chat:private' user.name %}" method="POST">
+                                        {% csrf_token %}
+                                        <button class=" me-auto btn btn-success py-0" type="submit">send msg</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                <div class="text-center mt-4">
+                    <a class="btn btn-outline-secondary" href="{% url 'chat:index' %}">Go back</a>
+                    <a class="btn btn-secondary" href="{% url 'chat:create' %}">New chat</a>
+                </div>
+            {% else %}
+                <div class="text-center">
+                    <h4 >We cant find no groups or users</h4>
+                    <img class="mt-4" style="max-width: 15%" class="img-responsive" src="{% static 'img/sad_smile.png' %}" alt="">
+                </div>
+                <div class="text-center mt-4">
+                    <a class="btn btn-outline-secondary" href="{% url 'chat:index' %}">Go back</a>
+                    <a class="btn btn-secondary" href="{% url 'chat:create' %}">New chat</a>
+                </div>            
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

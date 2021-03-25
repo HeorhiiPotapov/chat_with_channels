@@ -1,0 +1,9 @@
+{% autoescape off %}  
+Hi {{ user.pseudonym }},  
+Please click on the link below to confirm your registration,
+*** This link available only for 5 minutes ***
+
+http://{{ domain }}{% url 'users:activate' uidb64=uid token=token %}  
+
+If you think, it's not you, then just ignore this email.  
+{% endautoescape %}

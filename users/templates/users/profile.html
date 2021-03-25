@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <h3>{{ user.name }}</h3>
+            <h3>{{ user.email }}</h3>
+            <h3>{{ profile.status }}</h3>
+            <a href="{% url 'chat:index' %}">Start new conversation</a>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

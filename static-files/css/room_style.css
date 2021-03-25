@@ -1,0 +1,38 @@
+
+.text-right {
+  text-align: right;
+  margin-right: 20px;
+}
+
+.text-right p {
+  margin-left: 100px;
+  font-size: 14px;
+}
+
+.text-left {
+  margin-left: 20px;
+}
+
+.text-left p {
+  margin-right: 100px;
+  font-size: 14px;
+}
+
+span {
+  font-size: 14px;
+  color: blue;
+  font-weight: 600;
+}
+
+.image {
+  height: 150px;
+}
+
+#chat-log {
+  scrollbar-color: white;
+}
+
+
+input:focus, textarea:focus, select:focus{
+  outline: none;
+}
